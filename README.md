@@ -6,18 +6,6 @@ Kleine Bibliothek zum schnellen Einsatz von RXTX. Kein Laden von Natives nötig,
 
 Beispielprogramm
 ----------------
-package org.frxtx;
-
-import gnu.io.SerialPortEvent;
-import gnu.io.SerialPortEventListener;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-
-/**
- *
- * @author ferdinand
- */
 public class TEST implements Runnable {
 
     private InputStream inputStream;
@@ -44,11 +32,10 @@ public class TEST implements Runnable {
 
         rxtx.openPort("COM3", 9600, FRXTX.DATABITS_8, FRXTX.STOPBITS_1, FRXTX.PARITY_NONE);
 
-        /**
-         * Alternative mit Callback: inputStream = rxtx.getInputStream();
-         * rxtx.openPort("COM3", 9600, FRXTX.DATABITS_8, FRXTX.STOPBITS_1,
-         * FRXTX.PARITY_NONE, new mySerialListener);
-         */
+        Alternative mit Callback: inputStream = rxtx.getInputStream();
+        rxtx.openPort("COM3", 9600, FRXTX.DATABITS_8, FRXTX.STOPBITS_1,
+        FRXTX.PARITY_NONE, new mySerialListener);
+        
         System.out.println("OpenedPort");
 
         rxtx.sendMessage("Hallo, dies ist ein Test");
@@ -67,8 +54,6 @@ public class TEST implements Runnable {
     }
 
     private class mySerialListener implements SerialPortEventListener {
-
-        @Override
         public void serialEvent(SerialPortEvent e) {
             if (e.getEventType() == SerialPortEvent.DATA_AVAILABLE) {
                 try {
