@@ -32,9 +32,11 @@ Beispielprogramm
     
             rxtx.openPort("COM3", 9600, FRXTX.DATABITS_8, FRXTX.STOPBITS_1, FRXTX.PARITY_NONE);
     
-            Alternative mit Callback: inputStream = rxtx.getInputStream();
-            rxtx.openPort("COM3", 9600, FRXTX.DATABITS_8, FRXTX.STOPBITS_1,
-            FRXTX.PARITY_NONE, new mySerialListener);
+            /**
+            *   Alternative mit Callback:
+            *   inputStream = rxtx.getInputStream();
+            *   rxtx.openPort("COM3", 9600, FRXTX.DATABITS_8, FRXTX.STOPBITS_1, FRXTX.PARITY_NONE, new         mySerialListener);
+            **/
             
             System.out.println("OpenedPort");
     
