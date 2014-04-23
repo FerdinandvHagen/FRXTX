@@ -6,7 +6,7 @@ Kleine Bibliothek zum schnellen Einsatz von RXTX. Kein Laden von Natives nötig,
 
 Beispielprogramm
 ----------------
-public class TEST implements Runnable {
+    public class TEST implements Runnable {
 
     private InputStream inputStream;
 
@@ -69,4 +69,4 @@ public class TEST implements Runnable {
             }
         }
     }
-}
+    }
