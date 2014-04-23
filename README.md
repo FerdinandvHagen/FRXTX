@@ -4,6 +4,13 @@ FRXTX
 Kleine Bibliothek zum schnellen Einsatz von RXTX. Kein Laden von Natives nötig, da alles während der Laufzeit geschieht.
 
 
+Quelle
+------
+Diese Bibliothek setzt auf dem Release von http://mfizz.com/oss/rxtx-for-java auf.
+    RXTX binary builds provided as a courtesy of Mfizz Inc. (http://mfizz.com/).
+    Please see http://mfizz.com/oss/rxtx-for-java for more information.
+
+
 Beispielprogramm
 ----------------
     public class TEST implements Runnable {
