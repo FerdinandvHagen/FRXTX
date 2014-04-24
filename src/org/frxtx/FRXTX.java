@@ -319,6 +319,7 @@ public class FRXTX {
                         debug.print("Correct Library already exists");
                         return file.getAbsolutePath();
                     }
+                    in = FRXTX.class.getResourceAsStream(dll);
                 }
                 file.deleteOnExit();
                 OutputStream out = new FileOutputStream(file);
@@ -340,7 +341,6 @@ public class FRXTX {
     }
     
     private boolean checkLibs(File file, InputStream in) throws FileNotFoundException, IOException {
-        in.mark(0);
         InputStream in2 = new FileInputStream(file);
         byte[] buf = new byte[1024];
         byte[] buf2 = new byte[1024];
@@ -349,7 +349,6 @@ public class FRXTX {
         while ((len2 = in2.read(buf2)) > 0 && (len = in.read(buf)) > 0) {
             if (!Arrays.equals(buf, buf2)) {
                 in2.close();
-                in.reset();
                 return false;
             }
         }

@@ -33,12 +33,15 @@ public class TEST {
          *
          * List<String> ports = rxtx.getAvailablePorts();
          */
+        String myport = "";
         for (String port : rxtx.getAvailablePorts()) {
             System.out.println(port);
+            myport = port;
         }
 
+        System.out.println("Using Port: " + myport);
         //Open the COM-PORT: name, baudrate, Databits, Stopbits, parity
-        rxtx.openPort("COM3", 1000000, FRXTX.DATABITS_8, FRXTX.STOPBITS_1, FRXTX.PARITY_NONE);
+        rxtx.openPort(myport, 1000000, FRXTX.DATABITS_8, FRXTX.STOPBITS_1, FRXTX.PARITY_NONE);
 
         /**
          * Alternative with Callback: rxtx.openPort("COM3", 9600, FRXTX.DATABITS_8, FRXTX.STOPBITS_1, FRXTX.PARITY_NONE, new mySerialListener());
