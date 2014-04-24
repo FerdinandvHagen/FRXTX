@@ -14,56 +14,73 @@ Diese Bibliothek setzt auf dem Release von http://mfizz.com/oss/rxtx-for-java au
 
 Beispielprogramm
 ----------------
-    public class TEST implements Runnable {
-
-    private InputStream inputStream;
-
+    package org.frxtx;
+    
+    import gnu.io.SerialPortEvent;
+    import gnu.io.SerialPortEventListener;
+    import java.io.IOException;
+    import java.io.InputStream;
+    import java.util.List;
+    
+    /**
+     *
+     * @author ferdinand
+     */
+    public class TEST {
+    
+        private InputStream inputStream;
+    
         public static void main(String[] args) {
-            Runnable runnable = new TEST();
-            new Thread(runnable).start();
-            System.out.println("main finished");
+            new TEST();
         }
     
         public TEST() {
             System.out.println("Test!!");
-        }
     
-        @Override
-        public void run() {
             FRXTX rxtx = new FRXTX();
     
-            List<String> ports = rxtx.getAvailablePorts();
-    
-            for (String port : ports) {
+            /**
+             * available Ports are stored in a java.util.List
+             *
+             * List<String> ports = rxtx.getAvailablePorts();
+             */
+            String myport = "";
+            for (String port : rxtx.getAvailablePorts()) {
                 System.out.println(port);
+                myport = port;
             }
     
-            rxtx.openPort("COM3", 9600, FRXTX.DATABITS_8, FRXTX.STOPBITS_1, FRXTX.PARITY_NONE);
+            System.out.println("Using Port: " + myport);
+            //Open the COM-PORT: name, baudrate, Databits, Stopbits, parity
+            rxtx.openPort(myport, 1000000, FRXTX.DATABITS_8, FRXTX.STOPBITS_1, FRXTX.PARITY_NONE);
     
             /**
-            *   Alternative mit Callback:
-            *   inputStream = rxtx.getInputStream();
-            *   rxtx.openPort("COM3", 9600, FRXTX.DATABITS_8, FRXTX.STOPBITS_1, FRXTX.PARITY_NONE, new         mySerialListener);
-            **/
+             * Alternative with Callback: rxtx.openPort("COM3", 9600, FRXTX.DATABITS_8, FRXTX.STOPBITS_1, FRXTX.PARITY_NONE, new mySerialListener());
+             *
+             * The InputStream is needed to read data in callback
+             * inputStream = rxtx.getInputStream();
+             */
             
-            System.out.println("OpenedPort");
+            //Sending message, nothing Special
+            rxtx.sendMessage("Hallo, dies ist ein Test\r\n");
     
-            rxtx.sendMessage("Hallo, dies ist ein Test");
+            /**
+             * Of course you can send a byte Array, too:
+             */ 
+             byte[] b = {'H','A','L','L','O'};
+             rxtx.sendMessage(b);
     
-            System.out.println("SendMessage");
-    
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-                ex.printStackTrace();
+            while (true) {
+                String rs = rxtx.receiveMessage();
+                if (!rs.isEmpty()) {
+                    System.out.println("Received: " + rs);
+                }
             }
-    
-            System.out.println(rxtx.receiveMessage());
-            System.out.println("2: " + rxtx.receiveMessage());
-            System.exit(0);
         }
     
         private class mySerialListener implements SerialPortEventListener {
+    
+            @Override
             public void serialEvent(SerialPortEvent e) {
                 if (e.getEventType() == SerialPortEvent.DATA_AVAILABLE) {
                     try {
