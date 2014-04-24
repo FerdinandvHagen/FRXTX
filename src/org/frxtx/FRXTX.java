@@ -29,7 +29,6 @@ public class FRXTX {
     private List<String> ports;
     
     private String receivedMessage = "";
-    private byte[] receviedByte;
     
     private boolean portOpen = false;
     private CommPortIdentifier serialPortId;
@@ -265,14 +264,6 @@ public class FRXTX {
         receivedMessage += rs;
         flag = true;
         notify();
-    }
-    
-    private Object[] appendValue(Object[] obj, Object[] newObj) {
-        
-        ArrayList<Object> temp = new ArrayList<Object>(Arrays.asList(obj));
-        temp.add(Arrays.asList(newObj));
-        return temp.toArray();
-        
     }
     
     private class serialPortEventListener implements SerialPortEventListener {

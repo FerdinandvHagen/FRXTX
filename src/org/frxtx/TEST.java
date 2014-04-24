@@ -38,7 +38,7 @@ public class TEST {
         }
 
         //Open the COM-PORT: name, baudrate, Databits, Stopbits, parity
-        rxtx.openPort("COM3", 9600, FRXTX.DATABITS_8, FRXTX.STOPBITS_1, FRXTX.PARITY_NONE);
+        rxtx.openPort("COM3", 1000000, FRXTX.DATABITS_8, FRXTX.STOPBITS_1, FRXTX.PARITY_NONE);
 
         /**
          * Alternative with Callback: rxtx.openPort("COM3", 9600, FRXTX.DATABITS_8, FRXTX.STOPBITS_1, FRXTX.PARITY_NONE, new mySerialListener());
@@ -48,14 +48,13 @@ public class TEST {
          */
         
         //Sending message, nothing Special
-        rxtx.sendMessage("Hallo, dies ist ein Test");
+        rxtx.sendMessage("Hallo, dies ist ein Test\r\n");
 
         /**
          * Of course you can send a byte Array, too:
-         * 
-         * byte[] b = {'H','A','L','L','O'};
-         * rxtx.sendMessage(b);
-         */
+         */ 
+         byte[] b = {'H','A','L','L','O'};
+         rxtx.sendMessage(b);
 
         while (true) {
             String rs = rxtx.receiveMessage();
