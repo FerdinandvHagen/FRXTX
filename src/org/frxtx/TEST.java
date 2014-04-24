@@ -15,52 +15,54 @@ import java.util.List;
  *
  * @author ferdinand
  */
-public class TEST implements Runnable {
+public class TEST {
 
     private InputStream inputStream;
 
     public static void main(String[] args) {
-        Runnable runnable = new TEST();
-        new Thread(runnable).start();
-        System.out.println("main finished");
+        new TEST();
     }
 
     public TEST() {
         System.out.println("Test!!");
-    }
 
-    @Override
-    public void run() {
         FRXTX rxtx = new FRXTX();
 
-        List<String> ports = rxtx.getAvailablePorts();
-
-        for (String port : ports) {
+        /**
+         * available Ports are stored in a java.util.List
+         *
+         * List<String> ports = rxtx.getAvailablePorts();
+         */
+        for (String port : rxtx.getAvailablePorts()) {
             System.out.println(port);
         }
 
+        //Open the COM-PORT: name, baudrate, Databits, Stopbits, parity
         rxtx.openPort("COM3", 9600, FRXTX.DATABITS_8, FRXTX.STOPBITS_1, FRXTX.PARITY_NONE);
 
         /**
-         * Alternative mit Callback: inputStream = rxtx.getInputStream();
-         * rxtx.openPort("COM3", 9600, FRXTX.DATABITS_8, FRXTX.STOPBITS_1,
-         * FRXTX.PARITY_NONE, new mySerialListener);
+         * Alternative with Callback: rxtx.openPort("COM3", 9600, FRXTX.DATABITS_8, FRXTX.STOPBITS_1, FRXTX.PARITY_NONE, new mySerialListener());
+         *
+         * The InputStream is needed to read data in callback
+         * inputStream = rxtx.getInputStream();
          */
-        System.out.println("OpenedPort");
-
+        
+        //Sending message, nothing Special
         rxtx.sendMessage("Hallo, dies ist ein Test");
 
-        System.out.println("SendMessage");
+        /**
+         * Of course you can send a byte Array, too:
+         * 
+         * byte[] b = {'H','A','L','L','O'};
+         * rxtx.sendMessage(b);
+         */
 
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
+        while (true) {
+            String rs = rxtx.receiveMessage();
+            if (!rs.isEmpty()) {
+                System.out.println("Received: " + rs);
+            }
         }
-
-        System.out.println(rxtx.receiveMessage());
-        System.out.println("2: " + rxtx.receiveMessage());
-        System.exit(0);
     }
 
     private class mySerialListener implements SerialPortEventListener {

@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package org.frxtx;
 
 import gnu.io.CommPortIdentifier;
@@ -12,6 +7,8 @@ import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
 import gnu.io.UnsupportedCommOperationException;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,68 +22,84 @@ import java.util.TooManyListenersException;
 
 /**
  *
- * @author ferdinand
+ * @author Ferdinand von Hagen
  */
 public class FRXTX {
-
+    
     private List<String> ports;
-    String receivedMessage = "";
+    
+    private String receivedMessage = "";
+    private byte[] receviedByte;
+    
     private boolean portOpen = false;
     private CommPortIdentifier serialPortId;
     private Enumeration enumComm;
     private SerialPort serialPort;
     private OutputStream outputStream;
     InputStream inputStream;
-
+    String nativelib = "";
+    DEBUG debug;
+    
+    boolean flag = true;
+    
+    public FRXTX(boolean printDebug) {
+        init(printDebug);
+    }
+    
     public FRXTX() {
+        init(false);
+    }
+    
+    private void init(boolean printDebug) {
+        //Initialize debugging
+        debug = new DEBUG("FRXTX", printDebug);
+
         //First neccessary: Loading the important natives
-        System.out.println("System detected: " + getOsName() + "; Using " + getDataModel() + "-bit Version;");
-
-        String nativelib = "";
-
+        debug.print("System detected: " + getOsName() + "; Using " + getDataModel() + "-bit Version;");
+        
         if (getOsName() == "windows") {
             nativelib = createTemp("/libs/rxtxSerialx" + getDataModel() + ".dll", "rxtxSerial.dll");
         } else {
             nativelib = createTemp("/libs/librxtxSerial.so", "librxtxSerial.so");
         }
-
+        
         try {
             addLibraryPath(nativelib.substring(0, nativelib.lastIndexOf(File.separator)));
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-
+        
         if (nativelib.length() > 1) {
             System.load(nativelib);
-            System.out.println("Native load successfully");
+            debug.print("Native loaded");
         }
-
+    }
+    
+    public List<String> getAvailablePorts() {
         ports = new ArrayList<String>();
         listPorts();
-    }
-
-    public List<String> getAvailablePorts() {
         return ports;
     }
-
+    
     public boolean openPort(String port, int baudrate, int dataBits, int stopBits, int parity) {
         return openPort(port, baudrate, dataBits, stopBits, parity, new serialPortEventListener());
     }
-
+    
     public InputStream getInputStream() {
         if (portOpen) {
             return inputStream;
         }
-        System.err.println("no InputStream available");
+        debug.error("No InputStream available");
         return null;
     }
-
+    
     public boolean openPort(String port, int baudrate, int dataBits, int stopBits, int parity, SerialPortEventListener listener) {
         if (portOpen) {
-            System.err.println("Port already opened");
+            debug.error("Port already opened");
             return false;
         }
 
+        //Search the correct Port
         boolean foundPort = false;
         enumComm = CommPortIdentifier.getPortIdentifiers();
         while (enumComm.hasMoreElements()) {
@@ -97,85 +110,105 @@ public class FRXTX {
             }
         }
         if (foundPort != true) {
-            System.err.println("Serialport not found: " + port);
+            debug.error("Serialport not found: " + port);
             return false;
         }
 
+        //Get  handle to that Port
         try {
             serialPort = (SerialPort) serialPortId.open("Öffnen und Senden", 500);
         } catch (PortInUseException e) {
-            System.err.println("Port already in use");
+            debug.error("Port already in use");
             return false;
         }
 
+        //Get the In and OutputStreams
         try {
             outputStream = serialPort.getOutputStream();
         } catch (IOException e) {
-            System.err.println("No access to OutputStream");
+            debug.error("No access to OutputStream");
             return false;
         }
-
         try {
             inputStream = serialPort.getInputStream();
         } catch (IOException e) {
-            System.err.println("No access to InputStream");
+            debug.error("No access to InputStream");
         }
 
+        //Register an EnventListener for Receiving messages
         try {
             serialPort.addEventListener(listener);
         } catch (TooManyListenersException e) {
-            System.out.println("TooManyListenersException on Serialport");
+            debug.error("TooManyListenersException on Serialport");
         }
         serialPort.notifyOnDataAvailable(true);
 
+        //And set the proper connection details
         try {
             serialPort.setSerialPortParams(baudrate, dataBits, stopBits, parity);
         } catch (UnsupportedCommOperationException e) {
-            System.err.println("Couldn't set parameters for serial connection");
+            debug.error("Couldn't set parameters for serial connection");
             return false;
         }
-
+        
+        debug.print("Port opened");
         portOpen = true;
         return true;
     }
-
-    public boolean sendMessage(String message) {
+    
+    public boolean sendMessage(byte[] message) {
         if (!portOpen) {
             return false;
         }
         try {
-            outputStream.write(message.getBytes());
+            outputStream.write(message);
         } catch (IOException e) {
-            System.err.println("Error sending");
+            debug.error("Error sending: " + e.getMessage());
             return false;
         }
+        debug.print("Message send");
         return true;
     }
-
-    public String receiveMessage() {
+    
+    public boolean sendMessage(String message) {
+        return sendMessage(message.getBytes());
+    }
+    
+    public synchronized String receiveMessage() {
+        if (flag) {
+            flag = false;
+        } else {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                debug.print("aufgewacht");
+            }
+            flag = false;
+        }
         String returnString = receivedMessage + "";
         receivedMessage = "";
+        flag = true;
+        notify();
         return returnString;
     }
-
+    
     public boolean closeSerialPort() {
         if (portOpen == true) {
-            System.out.println("closing Serialport");
+            debug.print("closing Serialport");
             serialPort.close();
             portOpen = false;
             return true;
         } else {
-            System.err.println("Serialport already closed");
+            debug.error("Serialport already closed");
             return false;
         }
     }
-
+    
     private void listPorts() {
-        ports.clear();
-
+        debug.print("Listing available Ports");
         CommPortIdentifier serialPortId;
         Enumeration enumComm;
-
+        
         enumComm = CommPortIdentifier.getPortIdentifiers();
         while (enumComm.hasMoreElements()) {
             serialPortId = (CommPortIdentifier) enumComm.nextElement();
@@ -184,7 +217,7 @@ public class FRXTX {
             }
         }
     }
-
+    
     public static final int DATABITS_5 = 5;
     public static final int DATABITS_6 = 6;
     public static final int DATABITS_7 = 7;
@@ -202,22 +235,48 @@ public class FRXTX {
     public static final int FLOWCONTROL_RTSCTS_OUT = 2;
     public static final int FLOWCONTROL_XONXOFF_IN = 4;
     public static final int FLOWCONTROL_XONXOFF_OUT = 8;
-
-    private void readSerialPortData() {
+    
+    private synchronized void readSerialPortData() {
+        debug.print("Saving received Message");
+        String rs = "";
         try {
             byte[] data = new byte[150];
             int num;
+            
             while (inputStream.available() > 0) {
                 num = inputStream.read(data, 0, data.length);
-                receivedMessage += new String(data, 0, num);
+                rs += new String(data, 0, num);
             }
         } catch (IOException e) {
-            System.err.println("Error reading received message");
+            debug.error("Error reading received message: " + e.getMessage());
         }
+        
+        debug.print("readSerialData: " + rs);
+        if (flag) {
+            flag = false;
+        } else {
+            try {
+                wait();
+            } catch (InterruptedException ex) {
+                debug.print("read aufgewacht");
+            }
+            flag = false;
+        }
+        receivedMessage += rs;
+        flag = true;
+        notify();
     }
-
+    
+    private Object[] appendValue(Object[] obj, Object[] newObj) {
+        
+        ArrayList<Object> temp = new ArrayList<Object>(Arrays.asList(obj));
+        temp.add(Arrays.asList(newObj));
+        return temp.toArray();
+        
+    }
+    
     private class serialPortEventListener implements SerialPortEventListener {
-
+        
         public void serialEvent(SerialPortEvent event) {
             switch (event.getEventType()) {
                 case SerialPortEvent.DATA_AVAILABLE:
@@ -235,14 +294,14 @@ public class FRXTX {
             }
         }
     }
-
+    
     private String getDataModel() {
         if (System.getProperty("sun.arch.data.model").matches("64")) {
             return "64";
         }
         return "32";
     }
-
+    
     private String getOsName() {
         String os = "";
         if (System.getProperty("os.name").toLowerCase().indexOf("windows") > -1) {
@@ -252,20 +311,27 @@ public class FRXTX {
         } else if (System.getProperty("os.name").toLowerCase().indexOf("mac") > -1) {
             os = "mac";
         }
-
+        
         return os;
     }
-
+    
     private String createTemp(String dll, String name) {
         try {
             InputStream in = FRXTX.class.getResourceAsStream(dll);
             if (in == null) {
-                System.err.println("Resource " + name + " not found");
+                debug.error("Resource " + name + " not found");
             } else {
-                File file = new File(name);
+                File file = new File(System.getProperty("java.io.tmpdir") + name);
+                if (file.exists()) {
+                    if (checkLibs(file, in)) {
+                        in.close();
+                        debug.print("Correct Library already exists");
+                        return file.getAbsolutePath();
+                    }
+                }
                 file.deleteOnExit();
                 OutputStream out = new FileOutputStream(file);
-
+                
                 byte[] buf = new byte[1024];
                 int len;
                 while ((len = in.read(buf)) > 0) {
@@ -273,7 +339,7 @@ public class FRXTX {
                 }
                 in.close();
                 out.close();
-
+                
                 return file.getAbsolutePath();
             }
         } catch (IOException ex) {
@@ -281,7 +347,24 @@ public class FRXTX {
         }
         return "";
     }
-
+    
+    private boolean checkLibs(File file, InputStream in) throws FileNotFoundException, IOException {
+        in.mark(0);
+        InputStream in2 = new FileInputStream(file);
+        byte[] buf = new byte[1024];
+        byte[] buf2 = new byte[1024];
+        int len;
+        int len2;
+        while ((len2 = in2.read(buf2)) > 0 && (len = in.read(buf)) > 0) {
+            if (!Arrays.equals(buf, buf2)) {
+                in2.close();
+                in.reset();
+                return false;
+            }
+        }
+        return true;
+    }
+    
     public static void addLibraryPath(String pathToAdd) throws Exception {
         final Field usrPathsField = ClassLoader.class.getDeclaredField("usr_paths");
         usrPathsField.setAccessible(true);
